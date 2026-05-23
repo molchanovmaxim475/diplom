@@ -1,0 +1,29 @@
+services:
+  netguard:
+    build: .
+    container_name: netguard
+    restart: unless-stopped
+
+    # Нужен host network для работы iptables на хосте
+    network_mode: host
+
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+    env_file:
+      - .env
+
+    volumes:
+      - netguard-data:/data
+      - /var/log/snort:/var/log/snort:ro
+      - /var/log:/var/log/host:ro
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  netguard-data:

@@ -89,17 +89,22 @@ class VKBot:
                 ts     = info["ts"]
                 log.info("VK Long Poll connected")
 
+                # VK иногда возвращает URL с протоколом, иногда без
+                lp_url = server if server.startswith("http") else f"https://{server}"
+                log.info(f"Long Poll URL: {lp_url}")
+
                 async with httpx.AsyncClient(timeout=35) as client:
                     while True:
                         try:
                             r = await client.get(
-                                f"https://{server}",
+                                lp_url,
                                 params={"act": "a_check", "key": key,
                                         "ts": ts, "wait": 25}
                             )
                             data = r.json()
                         except Exception as e:
                             log.error(f"Long Poll request error: {e}")
+                            await asyncio.sleep(3)
                             break
 
                         if "failed" in data:

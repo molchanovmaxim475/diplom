@@ -11,8 +11,30 @@ import httpx
 
 log = logging.getLogger("netguard.vk")
 
-# Клавиатура главного меню
+# Клавиатура главного меню (inline — не требует "Возможностей бота")
 MAIN_KEYBOARD = json.dumps({
+    "inline": True,
+    "buttons": [
+        [
+            {"action": {"type": "text", "label": "Проверить систему"},  "color": "primary"},
+            {"action": {"type": "text", "label": "Последние угрозы"},   "color": "negative"},
+        ],
+        [
+            {"action": {"type": "text", "label": "Статус защиты"},      "color": "positive"},
+            {"action": {"type": "text", "label": "Заблокировать IP"},   "color": "secondary"},
+        ],
+        [
+            {"action": {"type": "text", "label": "Отчёт"},              "color": "primary"},
+            {"action": {"type": "text", "label": "Заблокированные IP"}, "color": "secondary"},
+        ],
+        [
+            {"action": {"type": "text", "label": "Настройки"},          "color": "secondary"},
+        ],
+    ],
+}, ensure_ascii=False)
+
+# Стандартная клавиатура (требует "Возможности бота" в настройках сообщества)
+MAIN_KEYBOARD_STANDARD = json.dumps({
     "one_time": False,
     "buttons": [
         [

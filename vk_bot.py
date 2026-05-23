@@ -11,9 +11,9 @@ import httpx
 
 log = logging.getLogger("netguard.vk")
 
-# Клавиатура главного меню (inline — не требует "Возможностей бота")
+# Клавиатура главного меню
 MAIN_KEYBOARD = json.dumps({
-    "inline": True,
+    "one_time": False,
     "buttons": [
         [
             {"action": {"type": "text", "label": "Проверить систему"},  "color": "primary"},

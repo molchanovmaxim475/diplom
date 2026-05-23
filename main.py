@@ -67,10 +67,12 @@ class Deduplicator:
 # ─── Парсер Snort ─────────────────────────────────────────────────────────────
 import re as _re
 
-RE_SNORT_HEADER   = _re.compile(r'\[\*\*\]\s*\[(\d+:\d+:\d+)\]\s*(.+?)\s*\[\*\*\]')
-RE_SNORT_PRIORITY = _re.compile(r'\[Priority:\s*(\d+)\]')
-RE_SNORT_ADDR     = _re.compile(
-    r'(\d{2}/\d{2}-[\d:.]+)\s+([\d.]+)(?::(\d+))?\s+->\s+([\d.]+)(?::(\d+))?'
+# Формат fast: TIMESTAMP [**] [SID] MSG [**] [Priority: N] {PROTO} SRC:SPORT -> DST:DPORT
+RE_SNORT_FAST = _re.compile(
+    r'(?P<ts>\d{2}/\d{2}-[\d:.]+)\s+\[\*\*\]\s+\[(?P<sid>[\d:]+)\]\s+(?P<msg>.+?)\s+\[\*\*\]\s*'
+    r'(?:\[Priority:\s*(?P<priority>\d+)\])?\s*'
+    r'(?:\{(?P<proto>\w+)\})?\s*'
+    r'(?P<src>[\d.]+)(?::(?P<spt>\d+))?\s+->\s+(?P<dst>[\d.]+)(?::(?P<dpt>\d+))?'
 )
 
 class SnortParser:
@@ -98,29 +100,24 @@ class SnortParser:
                 self._pos = f.tell()
         except OSError:
             return []
-        return [a for block in _re.split(r'\n{2,}', data.strip())
-                if (a := self._parse(block)) is not None]
+        return [a for line in data.splitlines()
+                if (a := self._parse(line)) is not None]
 
-    def _parse(self, block: str) -> dict | None:
-        lines = block.strip().splitlines()
-        if not lines:
+    def _parse(self, line: str) -> dict | None:
+        line = line.strip()
+        if not line:
             return None
-        m = RE_SNORT_HEADER.search(lines[0])
+        m = RE_SNORT_FAST.search(line)
         if not m:
             return None
-        sid, msg = m.group(1), m.group(2)
-        priority, src_ip, dst_ip, src_port, dst_port, ts = 3, "", "", "", "", ""
-        for line in lines[1:]:
-            if pm := RE_SNORT_PRIORITY.search(line):
-                priority = int(pm.group(1))
-            if am := RE_SNORT_ADDR.search(line):
-                ts, src_ip, src_port, dst_ip, dst_port = (
-                    am.group(1), am.group(2), am.group(3) or "",
-                    am.group(4), am.group(5) or "")
+        priority = int(m.group("priority") or 3)
         if priority > self.threshold:
             return None
-        return dict(type="snort", sid=sid, msg=msg, priority=priority,
-                    src_ip=src_ip, dst_ip=dst_ip, src_port=src_port, dst_port=dst_port, ts=ts)
+        return dict(type="snort", sid=m.group("sid"), msg=m.group("msg"),
+                    priority=priority,
+                    src_ip=m.group("src") or "", dst_ip=m.group("dst") or "",
+                    src_port=m.group("spt") or "", dst_port=m.group("dpt") or "",
+                    ts=m.group("ts"))
 
 
 # ─── Парсер iptables ──────────────────────────────────────────────────────────
